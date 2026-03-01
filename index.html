@@ -1,95 +1,169 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<title>井字將遊戲</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    margin-top: 50px;
-  }
-  h1 { margin-bottom: 20px; }
-  #board {
-    display: grid;
-    grid-template-columns: repeat(3, 100px);
-    grid-template-rows: repeat(3, 100px);
-    gap: 5px;
-    justify-content: center;
-    margin-bottom: 20px;
-  }
-  .cell {
-    width: 100px;
-    height: 100px;
-    background-color: #f0f0f0;
-    font-size: 60px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-  }
-  #message { font-size: 20px; margin-top: 10px; }
-  button { padding: 10px 20px; font-size: 16px; }
-</style>
+    <meta charset="UTF-8">
+    <title>雙人井字棋遊戲</title>
+    <link rel="icon" href="icon.png" type="image/png">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+            position: relative;
+        }
+        h1 { margin-bottom: 20px; }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            justify-content: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        .cell img {
+            width: 80px;
+            height: 80px;
+        }
+        #message { font-size: 20px; margin-top: 10px; }
+        button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
+        .win-line {
+            position: absolute;
+            background-color: #FFF200;
+            z-index: 10;
+        }
+    </style>
 </head>
 <body>
 
-<h1>井字將</h1>
+<h1>雙人井字棋</h1>
 <div id="board"></div>
 <div id="message"></div>
 <button onclick="resetGame()">重新開始</button>
 
 <script>
-let board = ["", "", "", "", "", "", "", "", ""];
-let currentPlayer = "X";
-const winCombos = [
-  [0,1,2],[3,4,5],[6,7,8],
-  [0,3,6],[1,4,7],[2,5,8],
-  [0,4,8],[2,4,6]
-];
+    let board = ["", "", "", "", "", "", "", "", ""];
+    let currentPlayer = "X";
+    let winLine = null; // 用來儲存勝利線
+    const winCombos = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+    ];
 
-function createBoard() {
-  const boardDiv = document.getElementById('board');
-  boardDiv.innerHTML = "";
-  board.forEach((cell, index) => {
-    const cellDiv = document.createElement('div');
-    cellDiv.classList.add('cell');
-    cellDiv.innerText = cell;
-    cellDiv.addEventListener('click', () => makeMove(index));
-    boardDiv.appendChild(cellDiv);
-  });
-}
+    function createBoard() {
+        const boardDiv = document.getElementById('board');
+        boardDiv.innerHTML = "";
+        board.forEach((cell, index) => {
+            const cellDiv = document.createElement('div');
+            cellDiv.classList.add('cell');
 
-function makeMove(index) {
-  if (board[index] === "" && !checkWinner()) {
-    board[index] = currentPlayer;
-    if (checkWinner()) {
-      document.getElementById('message').innerText = `${currentPlayer} 贏了！🎉`;
-    } else if (board.every(cell => cell !== "")) {
-      document.getElementById('message').innerText = "平手！🤝";
-    } else {
-      currentPlayer = currentPlayer === "X" ? "O" : "X";
-      document.getElementById('message').innerText = `輪到 ${currentPlayer}`;
+            if (cell === "X") {
+                const imgX = document.createElement('img');
+                imgX.src = "X.png";
+                cellDiv.appendChild(imgX);
+            } else if (cell === "O") {
+                const imgO = document.createElement('img');
+                imgO.src = "O.png";
+                cellDiv.appendChild(imgO);
+            }
+
+            cellDiv.addEventListener('click', () => makeMove(index));
+            boardDiv.appendChild(cellDiv);
+        });
     }
+
+    function makeMove(index) {
+        if (board[index] === "" && !checkWinner()) {
+            board[index] = currentPlayer;
+            const winnerCombo = getWinnerCombo();
+            if (winnerCombo) {
+                document.getElementById('message').innerText = `${currentPlayer} 贏了！🎉`;
+                drawWinLine(winnerCombo);
+            } else if (board.every(cell => cell !== "")) {
+                document.getElementById('message').innerText = "平手！🤝";
+            } else {
+                currentPlayer = currentPlayer === "X" ? "O" : "X";
+                document.getElementById('message').innerText = `輪到 ${currentPlayer}`;
+            }
+            createBoard();
+        }
+    }
+
+    function checkWinner() {
+        return winCombos.some(combo => combo.every(index => board[index] === currentPlayer));
+    }
+
+    function getWinnerCombo() {
+        return winCombos.find(combo => combo.every(index => board[index] === currentPlayer));
+    }
+
+    function drawWinLine(combo) {
+        if (winLine) winLine.remove(); // 移除舊線
+        const boardDiv = document.getElementById('board');
+        const cellSize = 100;
+        const gap = 5;
+        const line = document.createElement('div');
+        line.classList.add('win-line');
+
+        const [a, b, c] = combo;
+
+        // 水平線
+        if (a + 1 === b && b + 1 === c) {
+            line.style.width = `${cellSize * 3 + gap * 2}px`;
+            line.style.height = "10px";
+            line.style.top = `${Math.floor(a/3)* (cellSize+gap) + cellSize/2 - 5}px`;
+            line.style.left = "0px";
+        }
+        // 垂直線
+        else if (a + 3 === b && b + 3 === c) {
+            line.style.width = "10px";
+            line.style.height = `${cellSize * 3 + gap * 2}px`;
+            line.style.left = `${a % 3 * (cellSize + gap) + cellSize/2 -5}px`;
+            line.style.top = "0px";
+        }
+        // 左上到右下斜線
+        else if (combo.toString() === "0,4,8") {
+            line.style.width = `${Math.sqrt((cellSize*3 + gap*2)**2 + (cellSize*3 + gap*2)**2)}px`;
+            line.style.height = "10px";
+            line.style.transform = "rotate(45deg)";
+            line.style.transformOrigin = "0 0";
+            line.style.top = "0px";
+            line.style.left = "0px";
+        }
+        // 右上到左下斜線
+        else if (combo.toString() === "2,4,6") {
+            line.style.width = `${Math.sqrt((cellSize*3 + gap*2)**2 + (cellSize*3 + gap*2)**2)}px`;
+            line.style.height = "10px";
+            line.style.transform = "rotate(-45deg)";
+            line.style.transformOrigin = "0 0";
+            line.style.top = "0px";
+            line.style.left = "0px";
+        }
+
+        boardDiv.appendChild(line);
+        winLine = line;
+    }
+
+    function resetGame() {
+        board = ["", "", "", "", "", "", "", "", ""];
+        currentPlayer = "X";
+        document.getElementById('message').innerText = `輪到 ${currentPlayer}`;
+        if (winLine) winLine.remove();
+        createBoard();
+    }
+
     createBoard();
-  }
-}
-
-function checkWinner() {
-  return winCombos.some(combo => {
-    return combo.every(index => board[index] === currentPlayer);
-  });
-}
-
-function resetGame() {
-  board = ["", "", "", "", "", "", "", "", ""];
-  currentPlayer = "X";
-  document.getElementById('message').innerText = `輪到 ${currentPlayer}`;
-  createBoard();
-}
-
-createBoard();
-document.getElementById('message').innerText = `輪到 ${currentPlayer}`;
+    document.getElementById('message').innerText = `輪到 ${currentPlayer}`;
 </script>
 
 </body>
